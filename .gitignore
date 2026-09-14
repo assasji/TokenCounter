@@ -1,0 +1,19 @@
+# Swift Package Manager and Xcode output
+.build/
+.swiftpm/
+DerivedData/
+dist/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+
+# Local caches and macOS metadata
+.cache/
+.DS_Store
+
+# Local environment files may contain secrets.
+.env
+.env.*
+
+# Local assistant run artifacts
+.assistant-team/
