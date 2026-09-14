@@ -2,6 +2,8 @@
 
 🌐 **한국어**: [README.md](README.md)
 
+![TokenCounter Preview](assets/preview.png)
+
 TokenCounter is a tiny macOS app that shows the **remaining usage (%)** of your Claude, ChatGPT (Codex), and Gemini accounts right in the **menu bar** (the strip at the very top of your screen). You just click a login button for each service — no terminal or CLI needed for everyday use.
 
 ---

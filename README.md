@@ -2,6 +2,8 @@
 
 🌐 **English**: [README.en.md](README.en.md)
 
+![TokenCounter Preview](assets/preview.png)
+
 TokenCounter는 macOS **메뉴 막대(화면 맨 위 줄)** 에서 Claude · ChatGPT(Codex) · Gemini 계정의 **남은 사용량(%)** 을 보여 주는 작은 앱입니다. 각 서비스의 로그인 버튼만 누르면 되고, 평소 사용에 터미널이나 CLI 설치는 필요 없습니다.
 
 ---
