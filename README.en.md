@@ -107,6 +107,20 @@ All logins happen in a **small in‑app window**; on success the window closes a
 
 ---
 
+## Quitting & relaunching
+
+TokenCounter is a menu‑bar app: it has no Dock icon, and closing a window does not quit it.
+
+- **Quit**: click the menu‑bar icon → **TokenCounter 종료 / Quit** at the bottom (shortcut `⌘Q`). The icon disappears from the menu bar.
+- **Relaunch** (any of these):
+  - **Spotlight**: `⌘Space` → type `TokenCounter` → Enter
+  - **Finder**: double‑click `TokenCounter` in the `Applications` folder
+  - **Launchpad**: open Launchpad and click `TokenCounter`
+  - (if running from source) `swift run TokenCounter` in Terminal
+- **Launch automatically at login**: `System Settings → General → Login Items`, click `+`, and add `TokenCounter`.
+
+---
+
 ## Privacy & security
 
 - TokenCounter has **no backend server.** It talks **directly** to each provider and sends nothing to any third party.

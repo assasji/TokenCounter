@@ -107,6 +107,20 @@ Apple 서명이 없는 앱이라 그냥 더블클릭하면 "확인되지 않은 
 
 ---
 
+## 종료 · 다시 실행
+
+TokenCounter는 메뉴 막대 앱이라 Dock에 아이콘이 없고, 창을 닫아도 종료되지 않습니다.
+
+- **종료하기**: 메뉴 막대 아이콘 클릭 → 맨 아래 **TokenCounter 종료** (단축키 `⌘Q`). 그러면 메뉴 막대에서 아이콘이 사라집니다.
+- **다시 실행하기**: 아래 중 편한 방법
+  - **Spotlight**: `⌘Space` → `TokenCounter` 입력 → Enter
+  - **Finder**: `응용 프로그램` 폴더에서 `TokenCounter` 더블클릭
+  - **Launchpad**: Launchpad를 열고 `TokenCounter` 클릭
+  - (소스에서 실행 중이라면) 터미널에서 `swift run TokenCounter`
+- **로그인해서 Mac 켤 때 자동 실행되게 하려면**: `시스템 설정 → 일반 → 로그인 항목`에서 `+`를 눌러 `TokenCounter`를 추가하세요.
+
+---
+
 ## 개인정보 · 보안
 
 - TokenCounter는 **별도의 서버가 없습니다.** 각 공급자에게 **직접** 요청하며, 어떤 데이터도 제3자에게 보내지 않습니다.

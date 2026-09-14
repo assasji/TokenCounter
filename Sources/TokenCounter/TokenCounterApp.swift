@@ -138,6 +138,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             let settings = NSMenuItem(title: "설정…", action: #selector(openSettings), keyEquivalent: ",")
             settings.target = self; menu.addItem(settings)
+            menu.addItem(.separator())
+            let quit = NSMenuItem(title: "TokenCounter 종료", action: #selector(quitApp), keyEquivalent: "q")
+            quit.target = self; menu.addItem(quit)
             items[provider]?.menu = menu
             // Menu bar: icon + 5h-session remaining % (compact).
             let p = snapshot.primaryPercent
@@ -165,6 +168,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // never ambiguous which zone the reset time is in.
     private static let absoluteFmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm (z)"; return f }()
 
+    @objc @MainActor private func quitApp() { NSApp.terminate(nil) }
     @objc @MainActor private func refreshNow() { Task { @MainActor in await store?.refresh() } }
     @objc @MainActor private func openOpenAILogin() {
         OpenAIOAuthManager.shared.signIn { [weak self] in
