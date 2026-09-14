@@ -3,7 +3,9 @@ import AppKit
 import CryptoKit
 import WebKit
 
-enum OAuthError: LocalizedError {
+// Self-contained on purpose (own loopback server + window controller) so the existing
+// Gemini/OpenAI login code paths are never touched by Claude changes.
+enum ClaudeOAuthError: LocalizedError {
     case serverStartFailed(String)
     case serverTimeout
     case cancelled
@@ -25,26 +27,33 @@ enum OAuthError: LocalizedError {
     }
 }
 
+/// Browser-based OAuth login for Claude (claude.ai / Claude Max·Pro account) so users
+/// without a terminal / Claude Code CLI install can still authorize TokenCounter.
+/// Uses the exact OAuth client_id, authorize/token endpoints, and PKCE flow that the
+/// Claude Code CLI itself uses (extracted from the CLI binary's `hRi` config object),
+/// so the resulting token works against the same `/api/oauth/usage` endpoint.
 @MainActor
-final class GeminiOAuthManager: ObservableObject {
-    static let shared = GeminiOAuthManager()
+final class ClaudeOAuthManager: ObservableObject {
+    static let shared = ClaudeOAuthManager()
 
-    static let clientID = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
-    static let clientSecret = "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"
-    static let scopes = "openid https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email"
+    // The authorize/token endpoints strictly validate client_id as a UUID (confirmed by
+    // a server-side "Input should be a valid UUID" error when a URL-style client_id was
+    // tried). This UUID is the one Claude Code CLI uses.
+    static let clientID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
+    static let authorizeURL = "https://claude.com/cai/oauth/authorize"
+    static let tokenURL = "https://platform.claude.com/v1/oauth/token"
+    static let scopes = "org:create_api_key user:profile user:inference user:sessions:claude_code user:mcp_servers user:file_upload"
 
-    private let accessTokenKey = "gemini_access_token"
-    private let refreshTokenKey = "gemini_refresh_token"
-    private let tokenExpiryKey = "gemini_token_expiry"
-    private let userEmailKey = "gemini_user_email"
-    private let loggedInKey = "gemini_is_logged_in"
+    private let accessTokenKey = "claude_access_token"
+    private let refreshTokenKey = "claude_refresh_token"
+    private let tokenExpiryKey = "claude_token_expiry"
+    private let loggedInKey = "claude_is_logged_in"
 
     private let defaults: UserDefaults
-    private var activeServer: OAuthLoopbackServer?
+    private var activeServer: ClaudeOAuthLoopbackServer?
 
     @Published private(set) var isLoggedIn: Bool
     @Published private(set) var isAuthenticating: Bool = false
-    @Published private(set) var userEmail: String?
     @Published private(set) var authError: String?
 
     init(defaults: UserDefaults = .standard) {
@@ -52,7 +61,6 @@ final class GeminiOAuthManager: ObservableObject {
         let hasToken = !(defaults.string(forKey: accessTokenKey) ?? "").isEmpty
             || !(defaults.string(forKey: refreshTokenKey) ?? "").isEmpty
         self.isLoggedIn = hasToken || defaults.bool(forKey: loggedInKey)
-        self.userEmail = defaults.string(forKey: userEmailKey)
     }
 
     func signIn(onCompletion: (() -> Void)? = nil) {
@@ -63,7 +71,7 @@ final class GeminiOAuthManager: ObservableObject {
         authError = nil
         isAuthenticating = true
 
-        let server = OAuthLoopbackServer()
+        let server = ClaudeOAuthLoopbackServer()
         self.activeServer = server
 
         let port: Int
@@ -77,7 +85,7 @@ final class GeminiOAuthManager: ObservableObject {
 
         let (verifier, challenge) = generatePKCE()
         let state = UUID().uuidString
-        let redirectURI = "http://localhost:\(port)/oauth/callback"
+        let redirectURI = "http://localhost:\(port)/callback"
 
         guard let authURL = makeAuthURL(redirectURI: redirectURI, challenge: challenge, state: state) else {
             server.stop()
@@ -92,17 +100,17 @@ final class GeminiOAuthManager: ObservableObject {
             isHandled = true
             defer {
                 server.stop()
-                GeminiLoginWindowController.shared.close()
+                ClaudeLoginWindowController.shared.close()
             }
 
             guard returnedState == state else {
-                self.authError = OAuthError.stateMismatch.localizedDescription
+                self.authError = ClaudeOAuthError.stateMismatch.localizedDescription
                 self.isAuthenticating = false
                 return
             }
 
             do {
-                try await self.exchangeCodeForTokens(code: code, verifier: verifier, redirectURI: redirectURI)
+                try await self.exchangeCodeForTokens(code: code, verifier: verifier, redirectURI: redirectURI, state: state)
                 self.isAuthenticating = false
                 self.authError = nil
                 onCompletion?()
@@ -112,19 +120,17 @@ final class GeminiOAuthManager: ObservableObject {
             }
         }
 
-        // 1. Open dedicated small window (auto-closes upon login completion)
-        GeminiLoginWindowController.shared.show(url: authURL) { callbackURL in
+        // 1. Small dedicated window (auto-closes upon login completion). Its navigation
+        //    delegate intercepts the localhost/callback redirect.
+        ClaudeLoginWindowController.shared.show(url: authURL) { callbackURL in
             let comps = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false)
             let queryItems = comps?.queryItems ?? []
             let code = queryItems.first(where: { $0.name == "code" })?.value ?? ""
             let returnedState = queryItems.first(where: { $0.name == "state" })?.value
-
-            Task { @MainActor in
-                await completeAuth(code, returnedState)
-            }
+            Task { @MainActor in await completeAuth(code, returnedState) }
         }
 
-        // 2. Also listen on loopback server in case callback is handled via HTTP
+        // 2. Backup: also listen on the loopback server, in case the redirect lands as raw HTTP.
         Task {
             do {
                 let (code, returnedState) = try await server.waitForCode()
@@ -141,7 +147,7 @@ final class GeminiOAuthManager: ObservableObject {
     func cancelSignIn() {
         activeServer?.stop()
         activeServer = nil
-        GeminiLoginWindowController.shared.close()
+        ClaudeLoginWindowController.shared.close()
         isAuthenticating = false
     }
 
@@ -150,10 +156,8 @@ final class GeminiOAuthManager: ObservableObject {
         defaults.removeObject(forKey: accessTokenKey)
         defaults.removeObject(forKey: refreshTokenKey)
         defaults.removeObject(forKey: tokenExpiryKey)
-        defaults.removeObject(forKey: userEmailKey)
         defaults.set(false, forKey: loggedInKey)
         self.isLoggedIn = false
-        self.userEmail = nil
         self.authError = nil
     }
 
@@ -190,21 +194,18 @@ final class GeminiOAuthManager: ObservableObject {
             throw ProviderError.missingCredential
         }
 
-        guard let tokenEndpoint = URL(string: "https://oauth2.googleapis.com/token") else {
+        guard let tokenEndpoint = URL(string: Self.tokenURL) else {
             throw ProviderError.invalidResponse
         }
 
         var request = URLRequest(url: tokenEndpoint)
         request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-
-        let params = [
-            "client_id": Self.clientID,
-            "client_secret": Self.clientSecret,
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [
+            "grant_type": "refresh_token",
             "refresh_token": refreshToken,
-            "grant_type": "refresh_token"
-        ]
-        request.httpBody = encodeForm(params)
+            "client_id": Self.clientID,
+        ])
 
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
@@ -229,35 +230,38 @@ final class GeminiOAuthManager: ObservableObject {
         return newAccessToken
     }
 
-    private func exchangeCodeForTokens(code: String, verifier: String, redirectURI: String) async throws {
-        guard let tokenEndpoint = URL(string: "https://oauth2.googleapis.com/token") else {
-            throw OAuthError.tokenExchangeFailed("잘못된 엔드포인트 URL")
+    private func exchangeCodeForTokens(code: String, verifier: String, redirectURI: String, state: String) async throws {
+        guard let tokenEndpoint = URL(string: Self.tokenURL) else {
+            throw ClaudeOAuthError.tokenExchangeFailed("잘못된 엔드포인트 URL")
         }
 
         var request = URLRequest(url: tokenEndpoint)
         request.httpMethod = "POST"
-        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-
-        let params = [
-            "client_id": Self.clientID,
-            "client_secret": Self.clientSecret,
-            "code": code,
-            "code_verifier": verifier,
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // `state` is required in the body — omitting it makes the token endpoint reject the
+        // request as "Invalid request format" (matches Claude Code CLI's own exchange body).
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [
             "grant_type": "authorization_code",
-            "redirect_uri": redirectURI
-        ]
-        request.httpBody = encodeForm(params)
+            "code": code,
+            "redirect_uri": redirectURI,
+            "client_id": Self.clientID,
+            "code_verifier": verifier,
+            "state": state,
+        ])
 
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else {
-            throw OAuthError.tokenExchangeFailed("응답 없음")
+            throw ClaudeOAuthError.tokenExchangeFailed("응답 없음")
         }
 
         guard (200..<300).contains(http.statusCode),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let accessToken = json["access_token"] as? String, !accessToken.isEmpty else {
-            let errorMsg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error_description"] as? String ?? "HTTP \(http.statusCode)"
-            throw OAuthError.tokenExchangeFailed(errorMsg)
+            let parsed = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])
+            let errorMsg = (parsed?["error_description"] as? String)
+                ?? (parsed?["error"] as? String)
+                ?? "HTTP \(http.statusCode)"
+            throw ClaudeOAuthError.tokenExchangeFailed(errorMsg)
         }
 
         defaults.set(accessToken, forKey: accessTokenKey)
@@ -267,26 +271,21 @@ final class GeminiOAuthManager: ObservableObject {
         if let expiresIn = json["expires_in"] as? Double ?? (json["expires_in"] as? Int).map(Double.init) {
             defaults.set(Date().timeIntervalSince1970 + expiresIn, forKey: tokenExpiryKey)
         }
-        if let idToken = json["id_token"] as? String, let email = extractEmail(from: idToken) {
-            defaults.set(email, forKey: userEmailKey)
-            self.userEmail = email
-        }
         defaults.set(true, forKey: loggedInKey)
         self.isLoggedIn = true
     }
 
     private func makeAuthURL(redirectURI: String, challenge: String, state: String) -> URL? {
-        var comps = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")
+        var comps = URLComponents(string: Self.authorizeURL)
         comps?.queryItems = [
+            URLQueryItem(name: "code", value: "true"),
             URLQueryItem(name: "client_id", value: Self.clientID),
-            URLQueryItem(name: "redirect_uri", value: redirectURI),
             URLQueryItem(name: "response_type", value: "code"),
+            URLQueryItem(name: "redirect_uri", value: redirectURI),
             URLQueryItem(name: "scope", value: Self.scopes),
-            URLQueryItem(name: "access_type", value: "offline"),
-            URLQueryItem(name: "prompt", value: "consent"),
             URLQueryItem(name: "code_challenge", value: challenge),
             URLQueryItem(name: "code_challenge_method", value: "S256"),
-            URLQueryItem(name: "state", value: state)
+            URLQueryItem(name: "state", value: state),
         ]
         return comps?.url
     }
@@ -307,38 +306,16 @@ final class GeminiOAuthManager: ObservableObject {
 
         return (verifier, challenge)
     }
-
-    private func extractEmail(from idToken: String) -> String? {
-        let parts = idToken.split(separator: ".")
-        guard parts.count >= 2 else { return nil }
-        var base64 = String(parts[1])
-            .replacingOccurrences(of: "-", with: "+")
-            .replacingOccurrences(of: "_", with: "/")
-        while base64.count % 4 != 0 {
-            base64.append("=")
-        }
-        guard let data = Data(base64Encoded: base64),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return nil
-        }
-        return json["email"] as? String
-    }
-
-    private func encodeForm(_ dict: [String: String]) -> Data? {
-        dict.map { "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? $0.value)" }
-            .joined(separator: "&")
-            .data(using: .utf8)
-    }
 }
 
 // MARK: - Dedicated Small OAuth Window Controller (auto-closes on callback)
 @MainActor
-final class GeminiLoginWindowController: NSObject, NSWindowDelegate {
-    static let shared = GeminiLoginWindowController()
+final class ClaudeLoginWindowController: NSObject, NSWindowDelegate {
+    static let shared = ClaudeLoginWindowController()
 
     private var window: NSWindow?
     private var webView: WKWebView?
-    private var coordinator: OAuthWebViewCoordinator?
+    private var coordinator: ClaudeOAuthWebViewCoordinator?
     private var onCallbackReceived: ((URL) -> Void)?
 
     func show(url: URL, onCallback: @escaping (URL) -> Void) {
@@ -355,7 +332,6 @@ final class GeminiLoginWindowController: NSObject, NSWindowDelegate {
         config.websiteDataStore = WKWebsiteDataStore.default()
 
         let webView = WKWebView(frame: .zero, configuration: config)
-        // Standard macOS Safari User-Agent
         webView.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15"
 
         let win = NSWindow(
@@ -364,17 +340,21 @@ final class GeminiLoginWindowController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        win.title = "Gemini 로그인"
+        win.title = "Claude 로그인"
         win.delegate = self
         win.center()
         win.isReleasedWhenClosed = false
 
-        let coord = OAuthWebViewCoordinator { [weak self] callbackURL in
+        let coord = ClaudeOAuthWebViewCoordinator { [weak self] callbackURL in
             self?.close()
             self?.onCallbackReceived?(callbackURL)
         }
         self.coordinator = coord
         webView.navigationDelegate = coord
+        // "Continue with Google" opens Google Identity Services in a real popup window
+        // (window.open, ux_mode=popup) — without a uiDelegate that request is silently
+        // dropped and the sign-in never appears.
+        webView.uiDelegate = coord
 
         win.contentView = webView
         self.window = win
@@ -397,18 +377,56 @@ final class GeminiLoginWindowController: NSObject, NSWindowDelegate {
         window = nil
         webView = nil
         coordinator = nil
-        if GeminiOAuthManager.shared.isAuthenticating {
-            GeminiOAuthManager.shared.cancelSignIn()
+        if ClaudeOAuthManager.shared.isAuthenticating {
+            ClaudeOAuthManager.shared.cancelSignIn()
         }
     }
 }
 
-private final class OAuthWebViewCoordinator: NSObject, WKNavigationDelegate {
+private final class ClaudeOAuthWebViewCoordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
     private let onCallback: (URL) -> Void
     private var hasIntercepted = false
+    private var popupWindow: NSWindow?
+    private var popupWebView: WKWebView?
 
     init(onCallback: @escaping (URL) -> Void) {
         self.onCallback = onCallback
+    }
+
+    // MARK: WKUIDelegate — host window.open()-created popups (Google's "Continue with
+    // Google" sign-in uses ux_mode=popup), otherwise the request is silently dropped.
+    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+        let popup = WKWebView(frame: .zero, configuration: configuration)
+        popup.customUserAgent = webView.customUserAgent
+        popup.navigationDelegate = self
+        popup.uiDelegate = self
+
+        let width = (windowFeatures.width?.doubleValue).map { max($0, 380) } ?? 460
+        let height = (windowFeatures.height?.doubleValue).map { max($0, 560) } ?? 620
+        let win = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: width, height: height),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        win.title = "Google 로그인"
+        win.center()
+        win.isReleasedWhenClosed = false
+        win.contentView = popup
+
+        popupWindow = win
+        popupWebView = popup
+
+        win.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        return popup
+    }
+
+    // Google Identity Services calls window.close() on its popup once sign-in completes.
+    func webViewDidClose(_ webView: WKWebView) {
+        popupWindow?.close()
+        popupWindow = nil
+        popupWebView = nil
     }
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -417,7 +435,8 @@ private final class OAuthWebViewCoordinator: NSObject, WKNavigationDelegate {
             return
         }
 
-        if (url.host == "localhost" || url.host == "127.0.0.1"), url.path == "/oauth/callback" {
+        // Claude Code's own CLI uses the bare "/callback" path (not "/oauth/callback").
+        if (url.host == "localhost" || url.host == "127.0.0.1"), url.path == "/callback" {
             hasIntercepted = true
             decisionHandler(.cancel)
             DispatchQueue.main.async {
@@ -430,8 +449,8 @@ private final class OAuthWebViewCoordinator: NSObject, WKNavigationDelegate {
     }
 }
 
-// MARK: - Loopback OAuth Server
-final class OAuthLoopbackServer: @unchecked Sendable {
+// MARK: - Loopback OAuth Server (Claude-specific: separate instance from Gemini's)
+final class ClaudeOAuthLoopbackServer: @unchecked Sendable {
     private var serverFd: Int32 = -1
     private var isCancelled = false
     private(set) var port: Int = 0
@@ -439,7 +458,7 @@ final class OAuthLoopbackServer: @unchecked Sendable {
     func start() throws -> Int {
         let fd = socket(AF_INET, SOCK_STREAM, 0)
         guard fd >= 0 else {
-            throw OAuthError.serverStartFailed("소켓 생성 실패: \(errno)")
+            throw ClaudeOAuthError.serverStartFailed("소켓 생성 실패: \(errno)")
         }
         self.serverFd = fd
 
@@ -462,13 +481,13 @@ final class OAuthLoopbackServer: @unchecked Sendable {
         guard bindRes == 0 else {
             close(fd)
             self.serverFd = -1
-            throw OAuthError.serverStartFailed("포트 바인딩 실패: \(errno)")
+            throw ClaudeOAuthError.serverStartFailed("포트 바인딩 실패: \(errno)")
         }
 
         guard listen(fd, 5) == 0 else {
             close(fd)
             self.serverFd = -1
-            throw OAuthError.serverStartFailed("수신 대기 실패: \(errno)")
+            throw ClaudeOAuthError.serverStartFailed("수신 대기 실패: \(errno)")
         }
 
         var actualAddr = sockaddr_in()
@@ -481,7 +500,7 @@ final class OAuthLoopbackServer: @unchecked Sendable {
         guard sockNameRes == 0 else {
             close(fd)
             self.serverFd = -1
-            throw OAuthError.serverStartFailed("포트 확인 실패: \(errno)")
+            throw ClaudeOAuthError.serverStartFailed("포트 확인 실패: \(errno)")
         }
 
         let assignedPort = Int(actualAddr.sin_port.bigEndian)
@@ -493,7 +512,7 @@ final class OAuthLoopbackServer: @unchecked Sendable {
         return try await withCheckedThrowingContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 guard let self = self, self.serverFd >= 0 else {
-                    continuation.resume(throwing: OAuthError.cancelled)
+                    continuation.resume(throwing: ClaudeOAuthError.cancelled)
                     return
                 }
 
@@ -508,9 +527,9 @@ final class OAuthLoopbackServer: @unchecked Sendable {
 
                     guard clientFd >= 0 else {
                         if self.isCancelled {
-                            continuation.resume(throwing: OAuthError.cancelled)
+                            continuation.resume(throwing: ClaudeOAuthError.cancelled)
                         } else {
-                            continuation.resume(throwing: OAuthError.serverTimeout)
+                            continuation.resume(throwing: ClaudeOAuthError.serverTimeout)
                         }
                         return
                     }
@@ -536,7 +555,7 @@ final class OAuthLoopbackServer: @unchecked Sendable {
                         continue
                     }
 
-                    guard target.starts(with: "/oauth/callback") else {
+                    guard target.starts(with: "/callback") else {
                         let resp = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
                         _ = resp.withCString { write(clientFd, $0, strlen($0)) }
                         close(clientFd)
@@ -553,53 +572,17 @@ final class OAuthLoopbackServer: @unchecked Sendable {
                     if let code, !code.isEmpty {
                         html = """
                         <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <meta charset="utf-8">
-                            <title>TokenBar - 로그인 완료</title>
-                            <style>
-                                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f5f5f7; color: #1d1d1f; }
-                                .card { background: white; padding: 40px 32px; border-radius: 18px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); text-align: center; max-width: 380px; }
-                                h1 { font-size: 24px; margin-bottom: 12px; color: #34c759; }
-                                p { font-size: 15px; color: #6e6e73; line-height: 1.5; margin: 0; }
-                            </style>
-                            <script>
-                                window.onload = function() {
-                                    window.open('', '_self', '');
-                                    window.close();
-                                };
-                                setTimeout(function() { window.close(); }, 800);
-                            </script>
-                        </head>
-                        <body>
-                            <div class="card">
-                                <h1>✓ 로그인 성공</h1>
-                                <p>TokenBar에 Gemini 로그인이 완료되었습니다.<br>이 창은 자동으로 닫힙니다.</p>
-                            </div>
-                        </body>
-                        </html>
+                        <html><head><meta charset="utf-8"><title>TokenCounter - 로그인 완료</title>
+                        <style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f5f5f7;color:#1d1d1f}.card{background:#fff;padding:40px 32px;border-radius:18px;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center;max-width:380px}h1{font-size:24px;margin-bottom:12px;color:#34c759}p{font-size:15px;color:#6e6e73;line-height:1.5;margin:0}</style>
+                        <script>window.onload=function(){window.open('','_self','');window.close()};setTimeout(function(){window.close()},800)</script></head>
+                        <body><div class="card"><h1>✓ 로그인 성공</h1><p>TokenCounter에 Claude 로그인이 완료되었습니다.<br>이 창은 자동으로 닫힙니다.</p></div></body></html>
                         """
                     } else {
                         html = """
                         <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <meta charset="utf-8">
-                            <title>TokenBar - 로그인 실패</title>
-                            <style>
-                                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f5f5f7; color: #1d1d1f; }
-                                .card { background: white; padding: 40px 32px; border-radius: 18px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); text-align: center; max-width: 380px; }
-                                h1 { font-size: 24px; margin-bottom: 12px; color: #ff3b30; }
-                                p { font-size: 15px; color: #6e6e73; line-height: 1.5; margin: 0; }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="card">
-                                <h1>로그인 실패</h1>
-                                <p>\(error ?? "인증 코드를 수신하지 못했습니다.")<br>TokenBar에서 다시 시도해 주세요.</p>
-                            </div>
-                        </body>
-                        </html>
+                        <html><head><meta charset="utf-8"><title>TokenCounter - 로그인 실패</title>
+                        <style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f5f5f7;color:#1d1d1f}.card{background:#fff;padding:40px 32px;border-radius:18px;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center;max-width:380px}h1{font-size:24px;margin-bottom:12px;color:#ff3b30}p{font-size:15px;color:#6e6e73;line-height:1.5;margin:0}</style></head>
+                        <body><div class="card"><h1>로그인 실패</h1><p>\(error ?? "인증 코드를 수신하지 못했습니다.")<br>TokenCounter에서 다시 시도해 주세요.</p></div></body></html>
                         """
                     }
 
@@ -611,7 +594,7 @@ final class OAuthLoopbackServer: @unchecked Sendable {
                         continuation.resume(returning: (code, state))
                         return
                     } else {
-                        continuation.resume(throwing: OAuthError.authenticationFailed(error ?? "인증 코드가 없습니다."))
+                        continuation.resume(throwing: ClaudeOAuthError.authenticationFailed(error ?? "인증 코드가 없습니다."))
                         return
                     }
                 }
@@ -627,6 +610,3 @@ final class OAuthLoopbackServer: @unchecked Sendable {
         }
     }
 }
-
-// Backward compatibility stub
-typealias GeminiSessionManager = GeminiOAuthManager

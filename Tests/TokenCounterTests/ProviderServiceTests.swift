@@ -1,5 +1,5 @@
 import XCTest
-@testable import TokenBar
+@testable import TokenCounter
 
 final class ProviderServiceTests: XCTestCase {
     func testSnapshotPrimaryIsFirstWindow() {
@@ -16,7 +16,7 @@ final class ProviderServiceTests: XCTestCase {
 
     @MainActor
     func testMonitorKeepsAndPersistsLastGoodValueOnFailure() async throws {
-        let suiteName = "TokenBarTests.\(UUID().uuidString)"
+        let suiteName = "TokenCounterTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let prior = ProviderSnapshot(
@@ -435,7 +435,7 @@ final class ProviderServiceTests: XCTestCase {
             return (response, html)
         }
 
-        let suiteName = "TokenBarTests.GeminiWeb.\(UUID().uuidString)"
+        let suiteName = "TokenCounterTests.GeminiWeb.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
         defaults.set("__Secure-1PSID=mock_cookie", forKey: "gemini_session_cookie")
@@ -462,7 +462,7 @@ final class ProviderServiceTests: XCTestCase {
             return (response, html)
         }
 
-        let suiteName = "TokenBarTests.GeminiWeb.\(UUID().uuidString)"
+        let suiteName = "TokenCounterTests.GeminiWeb.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
         defaults.set("__Secure-1PSID=mock_cookie", forKey: "gemini_session_cookie")
@@ -490,7 +490,7 @@ final class ProviderServiceTests: XCTestCase {
             return (response, html)
         }
 
-        let suiteName = "TokenBarTests.GeminiWeb.\(UUID().uuidString)"
+        let suiteName = "TokenCounterTests.GeminiWeb.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
         defaults.set("__Secure-1PSID=mock_cookie", forKey: "gemini_session_cookie")
@@ -506,7 +506,7 @@ final class ProviderServiceTests: XCTestCase {
 
     @MainActor
     func testGeminiOAuthValidAccessTokenReturnsCachedWhenValid() async throws {
-        let suiteName = "TokenBarTests.\(UUID().uuidString)"
+        let suiteName = "TokenCounterTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
@@ -521,7 +521,7 @@ final class ProviderServiceTests: XCTestCase {
 
     @MainActor
     func testGeminiOAuthRefreshesWhenExpired() async throws {
-        let suiteName = "TokenBarTests.\(UUID().uuidString)"
+        let suiteName = "TokenCounterTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
@@ -551,7 +551,7 @@ final class ProviderServiceTests: XCTestCase {
 
     @MainActor
     func testGeminiOAuthLogoutClearsUserDefaults() throws {
-        let suiteName = "TokenBarTests.\(UUID().uuidString)"
+        let suiteName = "TokenCounterTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
 

@@ -1,5 +1,5 @@
 import XCTest
-@testable import TokenBar
+@testable import TokenCounter
 
 /// No real credentials or preference files are read/written by these tests.
 final class OpenAITestDefaults: UserDefaults, @unchecked Sendable {

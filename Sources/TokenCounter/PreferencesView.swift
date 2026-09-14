@@ -26,7 +26,7 @@ struct PreferencesView: View {
             Divider()
 
             HStack {
-                Text("TokenBar는 로컬 세션만 사용하며 별도 서버·분석이 없습니다.")
+                Text("TokenCounter는 로컬 세션만 사용하며 별도 서버·분석이 없습니다.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 Spacer()

@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DIST_DIR="$PROJECT_DIR/dist"
-APP_DIR="$DIST_DIR/TokenBar.app"
+APP_DIR="$DIST_DIR/TokenCounter.app"
 STAGING_DIR=""
 
 cleanup() {
@@ -21,20 +21,20 @@ swift build --disable-sandbox -c release
 BIN_DIR="$(swift build --disable-sandbox -c release --show-bin-path)"
 
 mkdir -p "$DIST_DIR"
-STAGING_DIR="$(mktemp -d "$DIST_DIR/.TokenBar.XXXXXX")"
-STAGED_APP="$STAGING_DIR/TokenBar.app"
+STAGING_DIR="$(mktemp -d "$DIST_DIR/.TokenCounter.XXXXXX")"
+STAGED_APP="$STAGING_DIR/TokenCounter.app"
 mkdir -p "$STAGED_APP/Contents/MacOS" "$STAGED_APP/Contents/Resources"
 
-cp "$BIN_DIR/TokenBar" "$STAGED_APP/Contents/MacOS/TokenBar"
+cp "$BIN_DIR/TokenCounter" "$STAGED_APP/Contents/MacOS/TokenCounter"
 cp "$PROJECT_DIR/Supporting/Info.plist" "$STAGED_APP/Contents/Info.plist"
-cp "$PROJECT_DIR/Sources/TokenBar/Resources/claude-icon.svg" "$STAGED_APP/Contents/Resources/"
-cp "$PROJECT_DIR/Sources/TokenBar/Resources/openAI-icon.svg" "$STAGED_APP/Contents/Resources/"
-cp "$PROJECT_DIR/Sources/TokenBar/Resources/gemini-icon.svg" "$STAGED_APP/Contents/Resources/"
+cp "$PROJECT_DIR/Sources/TokenCounter/Resources/claude-icon.svg" "$STAGED_APP/Contents/Resources/"
+cp "$PROJECT_DIR/Sources/TokenCounter/Resources/openAI-icon.svg" "$STAGED_APP/Contents/Resources/"
+cp "$PROJECT_DIR/Sources/TokenCounter/Resources/gemini-icon.svg" "$STAGED_APP/Contents/Resources/"
 
-SIGNING_IDENTITY="${TOKENBAR_CODESIGN_IDENTITY:--}"
+SIGNING_IDENTITY="${TOKENCOUNTER_CODESIGN_IDENTITY:--}"
 codesign --force --deep --sign "$SIGNING_IDENTITY" "$STAGED_APP"
 
-if [[ "$APP_DIR" != "$PROJECT_DIR/dist/TokenBar.app" ]]; then
+if [[ "$APP_DIR" != "$PROJECT_DIR/dist/TokenCounter.app" ]]; then
     echo "Refusing to replace an unexpected app path" >&2
     exit 1
 fi

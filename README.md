@@ -1,14 +1,14 @@
-# TokenBar
+# TokenCounter
 
 🌐 **English**: [README.en.md](README.en.md)
 
-TokenBar는 macOS **메뉴 막대(화면 맨 위 줄)** 에서 Claude · ChatGPT(Codex) · Gemini 계정의 **남은 사용량(%)** 을 보여 주는 작은 앱입니다. 각 서비스의 로그인 버튼만 누르면 되고, 평소 사용에 터미널이나 CLI 설치는 필요 없습니다.
+TokenCounter는 macOS **메뉴 막대(화면 맨 위 줄)** 에서 Claude · ChatGPT(Codex) · Gemini 계정의 **남은 사용량(%)** 을 보여 주는 작은 앱입니다. 각 서비스의 로그인 버튼만 누르면 되고, 평소 사용에 터미널이나 CLI 설치는 필요 없습니다.
 
 ---
 
 > ## ⚠️ 먼저 읽어주세요 — 중요 경고
 >
-> TokenBar는 **비공식(unofficial) 도구**입니다. Anthropic(Claude), OpenAI(ChatGPT), Google(Gemini)과 **아무런 제휴·후원 관계가 없습니다.**
+> TokenCounter는 **비공식(unofficial) 도구**입니다. Anthropic(Claude), OpenAI(ChatGPT), Google(Gemini)과 **아무런 제휴·후원 관계가 없습니다.**
 >
 > 사용량을 가져오기 위해 각 서비스의 **공식 문서에 없는 내부 API**를 호출합니다. 이 방식은 각 공급자의 **이용약관(ToS)에 어긋날 소지가 있으며**, 그 결과로:
 >
@@ -73,21 +73,21 @@ cd ~/Downloads/TokenCounter-main
 ./scripts/build_app.sh
 ```
 
-처음엔 1~2분 걸릴 수 있습니다. 끝나면 그 폴더 안 `dist/TokenBar.app`이 만들어집니다.
+처음엔 1~2분 걸릴 수 있습니다. 끝나면 그 폴더 안 `dist/TokenCounter.app`이 만들어집니다.
 
 ### 5단계. 응용 프로그램에 넣기
 
 ```sh
-mv dist/TokenBar.app /Applications/
+mv dist/TokenCounter.app /Applications/
 ```
 
-(또는 Finder에서 `dist` 폴더를 열어 `TokenBar.app`을 `응용 프로그램`으로 끌어다 놓기)
+(또는 Finder에서 `dist` 폴더를 열어 `TokenCounter.app`을 `응용 프로그램`으로 끌어다 놓기)
 
 ### 6단계. 첫 실행 (중요)
 
 Apple 서명이 없는 앱이라 그냥 더블클릭하면 "확인되지 않은 개발자" 경고가 뜹니다. **처음 한 번만** 이렇게 여세요:
 
-- `응용 프로그램`에서 **TokenBar 아이콘을 우클릭(또는 Control+클릭) → 열기 → 열기**
+- `응용 프로그램`에서 **TokenCounter 아이콘을 우클릭(또는 Control+클릭) → 열기 → 열기**
 
 한 번 이렇게 열면 그다음부터는 평소처럼 더블클릭으로 실행됩니다. 실행되면 화면 맨 위 **메뉴 막대**에 아이콘이 나타납니다(독(Dock)에는 안 뜹니다).
 
@@ -109,7 +109,7 @@ Apple 서명이 없는 앱이라 그냥 더블클릭하면 "확인되지 않은 
 
 ## 개인정보 · 보안
 
-- TokenBar는 **별도의 서버가 없습니다.** 각 공급자에게 **직접** 요청하며, 어떤 데이터도 제3자에게 보내지 않습니다.
+- TokenCounter는 **별도의 서버가 없습니다.** 각 공급자에게 **직접** 요청하며, 어떤 데이터도 제3자에게 보내지 않습니다.
 - 로그인은 각 공급자의 공식 인증 페이지에서 진행되며 **앱 안의 작은 창(WebKit)** 으로 표시됩니다. 시스템 브라우저의 쿠키·프로필을 읽지 않습니다.
 - 로그인 성공 시 access/refresh 토큰·계정 ID·만료 시각·이메일을 앱의 **UserDefaults**에 저장합니다.
   **⚠️ UserDefaults는 암호화 저장소가 아닙니다.** 같은 Mac 사용자 권한을 가진 프로그램이나 환경설정 백업에서 읽힐 수 있습니다. (Keychain을 쓰지 않는 것은 보안 강화가 아니라 반복되는 비밀번호 팝업을 피하기 위한 선택입니다.)
@@ -130,7 +130,7 @@ Apple 서명이 없는 앱이라 그냥 더블클릭하면 "확인되지 않은 
 ```sh
 swift build      # 빌드
 swift test       # 테스트
-swift run TokenBar   # 소스에서 바로 실행
+swift run TokenCounter   # 소스에서 바로 실행
 ```
 
 - 외부 런타임 의존성 없음(순수 Swift/SwiftUI/AppKit/WebKit).
@@ -140,7 +140,7 @@ swift run TokenBar   # 소스에서 바로 실행
 
 ## 고지 (Disclaimer)
 
-TokenBar는 Anthropic, OpenAI, Google의 공식 제품이 **아니며** 제휴·후원·인증을 의미하지 않습니다. "Claude", "ChatGPT", "Codex", "Gemini" 및 각 로고는 해당 소유자의 상표입니다. 이 프로젝트에서 이름/아이콘은 오직 **어떤 서비스에 대한 것인지 식별**하기 위한 용도로만 사용됩니다.
+TokenCounter는 Anthropic, OpenAI, Google의 공식 제품이 **아니며** 제휴·후원·인증을 의미하지 않습니다. "Claude", "ChatGPT", "Codex", "Gemini" 및 각 로고는 해당 소유자의 상표입니다. 이 프로젝트에서 이름/아이콘은 오직 **어떤 서비스에 대한 것인지 식별**하기 위한 용도로만 사용됩니다.
 
 ## 라이선스
 

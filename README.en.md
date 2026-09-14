@@ -1,14 +1,14 @@
-# TokenBar
+# TokenCounter
 
 🌐 **한국어**: [README.md](README.md)
 
-TokenBar is a tiny macOS app that shows the **remaining usage (%)** of your Claude, ChatGPT (Codex), and Gemini accounts right in the **menu bar** (the strip at the very top of your screen). You just click a login button for each service — no terminal or CLI needed for everyday use.
+TokenCounter is a tiny macOS app that shows the **remaining usage (%)** of your Claude, ChatGPT (Codex), and Gemini accounts right in the **menu bar** (the strip at the very top of your screen). You just click a login button for each service — no terminal or CLI needed for everyday use.
 
 ---
 
 > ## ⚠️ Read this first — important warning
 >
-> TokenBar is an **unofficial** tool. It is **not affiliated with or endorsed by** Anthropic (Claude), OpenAI (ChatGPT), or Google (Gemini).
+> TokenCounter is an **unofficial** tool. It is **not affiliated with or endorsed by** Anthropic (Claude), OpenAI (ChatGPT), or Google (Gemini).
 >
 > To read your usage, it calls **internal APIs that are not part of each service's public documentation.** This may **violate each provider's Terms of Service**, and as a result:
 >
@@ -33,7 +33,7 @@ The number is not a token count or a dollar amount — it's the **remaining perc
 
 ## Install (macOS · step by step)
 
-> TokenBar is currently distributed **as source code**. Follow the steps below once; after that it just runs.
+> TokenCounter is currently distributed **as source code**. Follow the steps below once; after that it just runs.
 > (The app is not Apple‑signed, so macOS will ask once the first time you open it — see step 6.)
 
 ### Step 1. Install developer tools (one time, ~5 min)
@@ -73,21 +73,21 @@ cd ~/Downloads/TokenCounter-main
 ./scripts/build_app.sh
 ```
 
-The first build can take 1–2 minutes. When it finishes, `dist/TokenBar.app` is created inside the folder.
+The first build can take 1–2 minutes. When it finishes, `dist/TokenCounter.app` is created inside the folder.
 
 ### Step 5. Move it to Applications
 
 ```sh
-mv dist/TokenBar.app /Applications/
+mv dist/TokenCounter.app /Applications/
 ```
 
-(Or open the `dist` folder in Finder and drag `TokenBar.app` into `Applications`.)
+(Or open the `dist` folder in Finder and drag `TokenCounter.app` into `Applications`.)
 
 ### Step 6. First launch (important)
 
 Because the app isn't Apple‑signed, double‑clicking shows an "unidentified developer" warning. **The first time only**, open it like this:
 
-- In `Applications`, **right‑click (or Control‑click) TokenBar → Open → Open**
+- In `Applications`, **right‑click (or Control‑click) TokenCounter → Open → Open**
 
 After opening it once this way, it launches normally from then on. When it runs, its icon appears in the **menu bar** at the top of the screen (it does not appear in the Dock).
 
@@ -109,7 +109,7 @@ All logins happen in a **small in‑app window**; on success the window closes a
 
 ## Privacy & security
 
-- TokenBar has **no backend server.** It talks **directly** to each provider and sends nothing to any third party.
+- TokenCounter has **no backend server.** It talks **directly** to each provider and sends nothing to any third party.
 - Logins use each provider's official auth page, shown in a **small in‑app window (WebKit)**. It does not read your system browser's cookies or profile.
 - On success it stores the access/refresh token, account ID, expiry, and email in the app's **UserDefaults**.
   **⚠️ UserDefaults is not encrypted storage.** It can be read by programs running as the same macOS user, or from a preferences backup. (Not using the Keychain is a choice to avoid repeated password prompts, not a security improvement.)
@@ -130,7 +130,7 @@ All logins happen in a **small in‑app window**; on success the window closes a
 ```sh
 swift build
 swift test
-swift run TokenBar
+swift run TokenCounter
 ```
 
 - No external runtime dependencies (pure Swift / SwiftUI / AppKit / WebKit).
@@ -140,7 +140,7 @@ swift run TokenBar
 
 ## Disclaimer
 
-TokenBar is **not** an official product of Anthropic, OpenAI, or Google, and does not imply any affiliation, endorsement, or certification. "Claude", "ChatGPT", "Codex", "Gemini", and their logos are trademarks of their respective owners. Names and icons here are used solely to **identify which service** each item refers to.
+TokenCounter is **not** an official product of Anthropic, OpenAI, or Google, and does not imply any affiliation, endorsement, or certification. "Claude", "ChatGPT", "Codex", "Gemini", and their logos are trademarks of their respective owners. Names and icons here are used solely to **identify which service** each item refers to.
 
 ## License
 

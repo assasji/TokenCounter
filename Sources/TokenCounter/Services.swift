@@ -42,7 +42,7 @@ struct ClaudeService: ProviderService, @unchecked Sendable {
     }
 }
 
-/// GPT / Codex usage with TokenBar-owned browser login; no CLI or auth.json fallback.
+/// GPT / Codex usage with TokenCounter-owned browser login; no CLI or auth.json fallback.
 struct OpenAIService: ProviderService, @unchecked Sendable {
     let provider: ProviderID = .openAI
     let session: URLSession

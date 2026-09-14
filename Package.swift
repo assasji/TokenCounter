@@ -2,11 +2,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "TokenBar",
+    name: "TokenCounter",
     platforms: [.macOS(.v13)],
-    products: [.executable(name: "TokenBar", targets: ["TokenBar"])],
+    products: [.executable(name: "TokenCounter", targets: ["TokenCounter"])],
     targets: [
-        .executableTarget(name: "TokenBar", resources: [.process("Resources")]),
-        .testTarget(name: "TokenBarTests", dependencies: ["TokenBar"])
+        .executableTarget(name: "TokenCounter", resources: [.process("Resources")]),
+        .testTarget(name: "TokenCounterTests", dependencies: ["TokenCounter"])
     ]
 )

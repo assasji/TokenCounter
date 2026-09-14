@@ -5,13 +5,13 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>ko</string>
     <key>CFBundleExecutable</key>
-    <string>TokenBar</string>
+    <string>TokenCounter</string>
     <key>CFBundleIdentifier</key>
-    <string>com.tokenbar.app</string>
+    <string>com.tokencounter.app</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>TokenBar</string>
+    <string>TokenCounter</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

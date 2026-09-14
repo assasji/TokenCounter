@@ -21,7 +21,7 @@ enum OpenAIOAuthError: LocalizedError {
 }
 
 /// Verified against Codex 0.154.0's login strings and ServerOptions::new (0x5af = 1455).
-/// This is Codex client compatibility, not an independently registered TokenBar OAuth app.
+/// This is Codex client compatibility, not an independently registered TokenCounter OAuth app.
 struct OpenAIOAuthFlow {
     static let clientID = "app_EMoamEEZ73f0CkXaXp7hrann"
     static let redirectURI = "http://localhost:1455/auth/callback"
@@ -458,7 +458,7 @@ private final class OpenAIWebViewCoordinator: NSObject, WKUIDelegate {
 // MARK: - Browser OAuth callback (all socket state owned by one serial queue)
 
 final class OpenAIOAuthLoopbackServer: @unchecked Sendable {
-    private let queue = DispatchQueue(label: "TokenBar.OpenAI.loopback")
+    private let queue = DispatchQueue(label: "TokenCounter.OpenAI.loopback")
     private let closed = DispatchGroup()
     private var source: DispatchSourceRead?
     private var timeout: DispatchWorkItem?
@@ -560,13 +560,13 @@ final class OpenAIOAuthLoopbackServer: @unchecked Sendable {
             respond(client, status: "400 Bad Request", message: "인증 보안 검증에 실패했습니다."); return
         }
         // A callback is not a completed token exchange. Do not claim success prematurely.
-        respond(client, status: "200 OK", message: "인증 응답을 받았습니다. TokenBar에서 로그인 완료 여부를 확인하세요. 이 창을 닫아도 됩니다.")
+        respond(client, status: "200 OK", message: "인증 응답을 받았습니다. TokenCounter에서 로그인 완료 여부를 확인하세요. 이 창을 닫아도 됩니다.")
         callback?(.success(url))
         stopOnQueue()
     }
 
     private func respond(_ fd: Int32, status: String, message: String) {
-        let html = "<!doctype html><meta charset=utf-8><title>TokenBar 로그인</title><p>\(message)</p><script>setTimeout(function(){window.close()},1500)</script>"
+        let html = "<!doctype html><meta charset=utf-8><title>TokenCounter 로그인</title><p>\(message)</p><script>setTimeout(function(){window.close()},1500)</script>"
         let response = "HTTP/1.1 \(status)\r\nContent-Type: text/html; charset=utf-8\r\nCache-Control: no-store\r\nReferrer-Policy: no-referrer\r\nContent-Length: \(html.utf8.count)\r\nConnection: close\r\n\r\n\(html)"
         let bytes = Array(response.utf8)
         bytes.withUnsafeBytes { raw in

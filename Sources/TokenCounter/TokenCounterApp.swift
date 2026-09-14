@@ -3,7 +3,7 @@ import AppKit
 import Combine
 
 @main
-struct TokenBarApp: App {
+struct TokenCounterApp: App {
     @StateObject private var store: MonitorStore
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 
@@ -18,7 +18,7 @@ struct TokenBarApp: App {
 
     var body: some Scene {
         Settings { PreferencesView(store: store) }
-            .commands { CommandGroup(replacing: .appTermination) { Button("TokenBar 종료") { NSApp.terminate(nil) }.keyboardShortcut("q") } }
+            .commands { CommandGroup(replacing: .appTermination) { Button("TokenCounter 종료") { NSApp.terminate(nil) }.keyboardShortcut("q") } }
     }
 }
 

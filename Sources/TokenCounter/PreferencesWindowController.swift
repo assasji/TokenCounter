@@ -28,7 +28,7 @@ final class PreferencesWindowController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        win.title = "TokenBar 설정"
+        win.title = "TokenCounter 설정"
         win.contentViewController = hostingController
         win.delegate = self
         win.center()
