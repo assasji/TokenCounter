@@ -114,7 +114,12 @@ Apple 서명이 없는 앱이라 그냥 더블클릭하면 "확인되지 않은 
 TokenCounter는 메뉴 막대 앱이라 Dock에 아이콘이 없고, 창을 닫아도 종료되지 않습니다.
 
 - **종료하기**: 메뉴 막대 아이콘 클릭 → 맨 아래 **TokenCounter 종료** (단축키 `⌘Q`). 그러면 메뉴 막대에서 아이콘이 사라집니다.
-- **다시 실행하기**: 아래 중 편한 방법
+- **바탕화면 아이콘으로 실행하기 (가장 쉬움)**: 아래를 한 번만 실행하면 **바탕화면에 `TokenCounter` 아이콘**이 생깁니다. 이후에는 그 아이콘을 더블클릭만 하면 됩니다.
+  ```sh
+  ./scripts/make_desktop_shortcut.sh
+  ```
+  (또는 Finder에서 `응용 프로그램`의 `TokenCounter`를 `⌘⌥`(Command+Option) 누른 채 바탕화면으로 드래그해도 바로가기가 생깁니다.)
+- **다시 실행하기 (다른 방법)**:
   - **Spotlight**: `⌘Space` → `TokenCounter` 입력 → Enter
   - **Finder**: `응용 프로그램` 폴더에서 `TokenCounter` 더블클릭
   - **Launchpad**: Launchpad를 열고 `TokenCounter` 클릭

@@ -114,7 +114,12 @@ All logins happen in a **small in‑app window**; on success the window closes a
 TokenCounter is a menu‑bar app: it has no Dock icon, and closing a window does not quit it.
 
 - **Quit**: click the menu‑bar icon → **TokenCounter 종료 / Quit** at the bottom (shortcut `⌘Q`). The icon disappears from the menu bar.
-- **Relaunch** (any of these):
+- **Launch from a Desktop icon (easiest)**: run this once to get a **`TokenCounter` icon on your Desktop**; after that, just double‑click it.
+  ```sh
+  ./scripts/make_desktop_shortcut.sh
+  ```
+  (Or, in Finder, drag `TokenCounter` from `Applications` to the Desktop while holding `⌘⌥` (Command+Option) to create an alias.)
+- **Relaunch (other ways)**:
   - **Spotlight**: `⌘Space` → type `TokenCounter` → Enter
   - **Finder**: double‑click `TokenCounter` in the `Applications` folder
   - **Launchpad**: open Launchpad and click `TokenCounter`

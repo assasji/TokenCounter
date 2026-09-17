@@ -83,9 +83,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 menu.addItem(.init(title: "잔여: N/A", action: nil, keyEquivalent: ""))
             } else {
                 for w in snapshot.windows {
-                    let reset = w.resetsAt.map { " · 리셋 " + Self.absoluteFmt.string(from: $0) } ?? ""
-                    let mi = NSMenuItem(title: "\(w.label): \(Int(w.remainingPercent.rounded()))% 남음\(reset)", action: nil, keyEquivalent: "")
-                    mi.attributedTitle = NSAttributedString(string: mi.title, attributes: [.foregroundColor: color(w.remainingPercent)])
+                    let resetText = w.resetsAt.map { "리셋 " + Self.absoluteFmt.string(from: $0) } ?? ""
+                    let mi = NSMenuItem()
+                    mi.title = "\(w.label): \(Int(w.remainingPercent.rounded()))% 남음"  // accessibility fallback
+                    mi.view = UsageRowView(label: w.label, percent: w.remainingPercent, reset: resetText)
                     menu.addItem(mi)
                 }
             }
@@ -164,9 +165,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             items[provider]?.button?.toolTip = (isOpenAINotLoggedIn || isGeminiNotLoggedIn || isClaudeNotLoggedIn) ? "\(provider.name) · 로그인이 필요합니다" : (snapshot.error ?? "\(provider.name) · 5시간 세션 잔여")
         }
     }
-    // e.g. "18:32 (EST)" — current system time zone, abbreviation spelled out so it's
-    // never ambiguous which zone the reset time is in.
-    private static let absoluteFmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm (z)"; return f }()
+    // e.g. "9/18 18:32 (EST)" — date + time in the current system time zone, with the
+    // zone abbreviation spelled out. Including the date matters for windows that reset
+    // days away (e.g. the weekly limit), so the reset moment is never ambiguous.
+    private static let absoluteFmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "M/d HH:mm (z)"; return f }()
 
     @objc @MainActor private func quitApp() { NSApp.terminate(nil) }
     @objc @MainActor private func refreshNow() { Task { @MainActor in await store?.refresh() } }
@@ -207,5 +209,71 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         image.isTemplate = provider == .openAI
         image.accessibilityDescription = provider.name
         return image
+    }
+}
+
+/// One usage window rendered as a menu row: label (top-left), reset time (below it),
+/// remaining % (top-right), and a rounded graphic progress bar spanning the width.
+final class UsageRowView: NSView {
+    private let label: String
+    private let reset: String
+    private let percent: Double   // 0...100, remaining
+
+    init(label: String, percent: Double, reset: String) {
+        self.label = label
+        self.reset = reset
+        self.percent = max(0, min(100, percent))
+        super.init(frame: NSRect(x: 0, y: 0, width: 260, height: 52))
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    private var tint: NSColor {
+        if percent < 20 { return .systemRed }
+        if percent <= 50 { return .systemYellow }
+        return .systemGreen
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let pad: CGFloat = 14
+        let w = bounds.width
+
+        // Top row: label (left) + "N% 남음" (right)
+        let title = NSAttributedString(string: label, attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .medium),
+            .foregroundColor: NSColor.labelColor,
+        ])
+        title.draw(at: NSPoint(x: pad, y: bounds.height - 22))
+
+        let pct = NSAttributedString(string: "\(Int(percent.rounded()))% 남음", attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
+            .foregroundColor: tint,
+        ])
+        pct.draw(at: NSPoint(x: w - pad - pct.size().width, y: bounds.height - 22))
+
+        // Second line: reset time (left)
+        if !reset.isEmpty {
+            NSAttributedString(string: reset, attributes: [
+                .font: NSFont.systemFont(ofSize: 11),
+                .foregroundColor: NSColor.secondaryLabelColor,
+            ]).draw(at: NSPoint(x: pad, y: bounds.height - 38))
+        }
+
+        // Rounded progress bar
+        let barH: CGFloat = 6
+        let barY: CGFloat = 7
+        let barW = w - pad * 2
+        let track = NSBezierPath(roundedRect: NSRect(x: pad, y: barY, width: barW, height: barH),
+                                 xRadius: barH / 2, yRadius: barH / 2)
+        NSColor.quaternaryLabelColor.setFill()
+        track.fill()
+
+        let ratio = CGFloat(percent / 100)
+        if ratio > 0 {
+            let fillW = max(barH, barW * ratio)   // keep the rounded cap visible at tiny values
+            let fill = NSBezierPath(roundedRect: NSRect(x: pad, y: barY, width: fillW, height: barH),
+                                    xRadius: barH / 2, yRadius: barH / 2)
+            tint.setFill()
+            fill.fill()
+        }
     }
 }
