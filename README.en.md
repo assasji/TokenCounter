@@ -33,9 +33,21 @@ The number is not a token count or a dollar amount — it's the **remaining perc
 
 ---
 
+## Quick install (no build)
+
+Download **`TokenCounter-share.zip`** from [Releases](https://github.com/assasji/TokenCounter/releases/latest), unzip it, move `TokenCounter.app` into `Applications`, and open it. Works on both Apple Silicon and Intel Macs (macOS 13+).
+
+- "Unidentified developer" warning → **System Settings → Privacy & Security → "Open Anyway"**
+- "…is damaged and can't be opened" → run this in Terminal, then open it again
+  ```sh
+  xattr -dr com.apple.quarantine /Applications/TokenCounter.app
+  ```
+
+Prefer to build it yourself? Follow the steps below.
+
 ## Install (macOS · step by step)
 
-> TokenCounter is currently distributed **as source code**. Follow the steps below once; after that it just runs.
+> This builds TokenCounter from source. Follow the steps below once; after that it just runs.
 > (The app is not Apple‑signed, so macOS will ask once the first time you open it — see step 6.)
 
 ### Step 1. Install developer tools (one time, ~5 min)
@@ -75,7 +87,7 @@ cd ~/Downloads/TokenCounter-main
 ./scripts/build_app.sh
 ```
 
-The first build can take 1–2 minutes. When it finishes, `dist/TokenCounter.app` is created inside the folder.
+The first build can take 1–2 minutes. When it finishes, `dist/TokenCounter.app` (universal: Apple Silicon + Intel) and a shareable `dist/TokenCounter-share.zip` are created inside the folder.
 
 ### Step 5. Move it to Applications
 
