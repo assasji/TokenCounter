@@ -28,6 +28,7 @@ TokenCounter is a tiny macOS app that shows the **remaining usage (%)** of your 
 - **Colors**: red under 20% / yellow 20–50% / default above
 - `⚠`: login required, or the last lookup failed
 - `N/A`: no value has been read successfully yet
+- **사용량 추가하기… / Add usage** (Gemini: **upgrade plan**): opens the service's official usage/billing page in your browser; shown as a red `⚡` under 20%. The app never purchases anything itself.
 
 The number is not a token count or a dollar amount — it's the **remaining percentage of a usage window** as reported by each service.
 

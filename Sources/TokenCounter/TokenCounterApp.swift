@@ -116,6 +116,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             menu.addItem(.separator())
             let refresh = NSMenuItem(title: "지금 갱신", action: #selector(refreshNow), keyEquivalent: "r")
             refresh.target = self; menu.addItem(refresh)
+            // Shortcut to the provider's official page for buying more usage / upgrading.
+            // The app never purchases anything itself; it only opens the page in the browser.
+            let isLow = snapshot.windows.contains { $0.remainingPercent < 20 }
+            let topUpTitle = Self.topUpTitle(provider)
+            let topUp = NSMenuItem(title: topUpTitle, action: #selector(openTopUpPage(_:)), keyEquivalent: "")
+            topUp.target = self
+            topUp.representedObject = provider.rawValue
+            topUp.toolTip = "브라우저에서 \(provider.name) 공식 페이지를 엽니다"
+            if isLow {
+                topUp.attributedTitle = NSAttributedString(
+                    string: "⚡ " + topUpTitle,
+                    attributes: [.foregroundColor: NSColor.systemRed, .font: NSFont.menuFont(ofSize: 0)]
+                )
+            }
+            menu.addItem(topUp)
             if provider == .openAI {
                 let title = OpenAIOAuthManager.shared.isLoggedIn ? "ChatGPT 계정 다시 로그인…" : "ChatGPT 로그인…"
                 let loginItem = NSMenuItem(title: title, action: #selector(openOpenAILogin), keyEquivalent: "")
@@ -169,6 +184,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // zone abbreviation spelled out. Including the date matters for windows that reset
     // days away (e.g. the weekly limit), so the reset moment is never ambiguous.
     private static let absoluteFmt: DateFormatter = { let f = DateFormatter(); f.dateFormat = "M/d HH:mm (z)"; return f }()
+
+    /// Official pages where the user can add usage themselves.
+    /// Claude: Settings > Usage (usage credits / bundles). ChatGPT: Codex Settings > Usage (credits).
+    /// Gemini has no pay-as-you-go top-up for these quotas, so link to the Google AI plans page.
+    static func topUpURL(_ provider: ProviderID) -> URL? {
+        switch provider {
+        case .claude: return URL(string: "https://claude.ai/settings/usage")
+        case .openAI: return URL(string: "https://chatgpt.com/codex/settings/usage")
+        case .gemini: return URL(string: "https://one.google.com/about/google-ai-plans/")
+        }
+    }
+
+    static func topUpTitle(_ provider: ProviderID) -> String {
+        provider == .gemini ? "요금제 업그레이드 보기…" : "사용량 추가하기…"
+    }
+
+    @objc @MainActor private func openTopUpPage(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let provider = ProviderID(rawValue: raw),
+              let url = Self.topUpURL(provider) else { return }
+        NSWorkspace.shared.open(url)
+    }
 
     @objc @MainActor private func quitApp() { NSApp.terminate(nil) }
     @objc @MainActor private func refreshNow() { Task { @MainActor in await store?.refresh() } }
