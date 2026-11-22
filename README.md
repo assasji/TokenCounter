@@ -33,9 +33,21 @@ TokenCounter는 macOS **메뉴 막대(화면 맨 위 줄)** 에서 Claude · Cha
 
 ---
 
+## 빠른 설치 (빌드 없이)
+
+[Releases](https://github.com/assasji/TokenCounter/releases/latest)에서 **`TokenCounter-share.zip`**을 내려받아 압축을 풀고, `TokenCounter.app`을 `응용 프로그램`으로 옮겨 실행하세요. Apple Silicon·Intel Mac(macOS 13+) 모두 지원합니다.
+
+- "확인되지 않은 개발자" 경고 → **시스템 설정 → 개인정보 보호 및 보안 → "그래도 열기"**
+- "손상되었기 때문에 열 수 없습니다" → 터미널에서 아래 한 줄 실행 후 다시 열기
+  ```sh
+  xattr -dr com.apple.quarantine /Applications/TokenCounter.app
+  ```
+
+직접 빌드하고 싶다면 아래 단계를 따르세요.
+
 ## 설치 방법 (macOS · 단계별)
 
-> 지금은 **소스 코드로 배포**됩니다. 아래 단계대로 하면 됩니다. 한 번만 설정해두면 다음부터는 바로 실행됩니다.
+> 소스 코드에서 직접 빌드하는 방법입니다. 아래 단계대로 하면 됩니다. 한 번만 설정해두면 다음부터는 바로 실행됩니다.
 > (Apple 서명이 없는 앱이라 처음 열 때 macOS가 한 번 물어봅니다 — 6단계 참고.)
 
 ### 1단계. 개발 도구 설치 (최초 1회, 약 5분)
@@ -75,7 +87,7 @@ cd ~/Downloads/TokenCounter-main
 ./scripts/build_app.sh
 ```
 
-처음엔 1~2분 걸릴 수 있습니다. 끝나면 그 폴더 안 `dist/TokenCounter.app`이 만들어집니다.
+처음엔 1~2분 걸릴 수 있습니다. 끝나면 그 폴더 안에 `dist/TokenCounter.app`(Apple Silicon·Intel 겸용)과, 다른 사람에게 보낼 수 있는 `dist/TokenCounter-share.zip`이 만들어집니다.
 
 ### 5단계. 응용 프로그램에 넣기
 

@@ -1,0 +1,15 @@
+TokenCounter 설치 방법
+
+1. TokenCounter.app을 "응용 프로그램(Applications)" 폴더로 옮기세요.
+
+2. 응용 프로그램 폴더에서 TokenCounter를 실행하세요.
+   경고가 뜨면:
+   - 시스템 설정 → 개인정보 보호 및 보안 → 아래쪽 "그래도 열기" 클릭
+   - "손상되었기 때문에 열 수 없습니다"가 뜨면 터미널에 아래 한 줄을 붙여넣고 다시 실행:
+     xattr -dr com.apple.quarantine /Applications/TokenCounter.app
+
+3. Dock이 아니라 화면 맨 위 메뉴바에 아이콘이 생겨요.
+   본인 Claude / ChatGPT / Gemini 계정으로 로그인해서 쓰면 됩니다.
+   종료는 메뉴바 아이콘 → "종료".
+
+요구사항: macOS 13 이상 (Apple Silicon / Intel 모두 지원)
